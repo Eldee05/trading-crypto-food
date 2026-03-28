@@ -39,7 +39,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (items.length === 0 && !orderComplete) navigate("/cart");
-  }, [items, orderComplete]);
+  }, [items, orderComplete, navigate]);
 
   const createPaymentIntent = async () => {
     if (subtotal <= 0) return;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Link } from "react-router-dom";
@@ -37,6 +37,15 @@ export default function ProfilePage() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [saving, setSaving] = useState(false);
 
+  const fetchReferrals = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("referrals")
+      .select("*")
+      .eq("referrer_id", user.id);
+    if (data) setReferrals(data);
+  }, [user]);
+
   useEffect(() => {
     if (user) {
       setForm({
@@ -49,27 +58,21 @@ export default function ProfilePage() {
       });
       fetchReferrals();
     }
-  }, [user]);
-
-  const fetchReferrals = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from("referrals")
-      .select("*")
-      .eq("referrer_id", user.id);
-    if (data) setReferrals(data);
-  };
-
+  }, [user, fetchReferrals]);
   const handleSave = async () => {
     setSaving(true);
     try {
       await updateProfile(form);
       setEditing(false);
       toast.success("Profile updated!");
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        toast.error(e.message);
+      } else {
+        toast.error("Something went wrong");
+      }
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const copyReferralCode = () => {
@@ -202,7 +205,7 @@ export default function ProfilePage() {
                       {f.label}
                     </label>
                     <input
-                      value={(form as any)[f.key]}
+                      value={form[f.key] || ""}
                       disabled={!editing}
                       onChange={(e) =>
                         setForm({ ...form, [f.key]: e.target.value })
@@ -224,7 +227,7 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="text-xs text-gray-500 mb-2 block flex items-center gap-1">
+                  <label className="text-xs text-gray-500 mb-2 block items-center gap-1">
                     <Flame className="w-3 h-3 text-orange-400" /> Preferred
                     Spice Level
                   </label>

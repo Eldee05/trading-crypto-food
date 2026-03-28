@@ -273,7 +273,7 @@ export default function StorePage() {
 
               {/* Spice Level */}
               <div className="mb-6">
-                <label className="text-sm font-medium text-white mb-2 block flex items-center gap-2">
+                <label className="text-sm font-medium text-white mb-2 block items-center gap-2">
                   <Flame className="w-4 h-4 text-orange-400" /> Spice Level
                 </label>
                 <div className="flex gap-2">

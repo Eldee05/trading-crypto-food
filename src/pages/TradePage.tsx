@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import CandlestickChart, {
-  CandleData,
-  aggregateCandles,
-} from "@/components/CandlestickChart";
+import CandlestickChart from "@/components/CandlestickChart";
+import { CandleData } from "@/lib/utils";
+import { aggregateCandles } from "@/lib/utils";
+
 import {
   TrendingUp,
   TrendingDown,
@@ -76,17 +76,7 @@ export default function TradePage() {
   const [chartExpanded, setChartExpanded] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchPrices();
-    const interval = setInterval(fetchPrices, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (selected) fetchHistory(selected.symbol);
-  }, [selected]);
-
-  const fetchPrices = async () => {
+  const fetchPrices = useCallback(async () => {
     const { data } = await supabase
       .from("token_prices")
       .select("*")
@@ -97,7 +87,17 @@ export default function TradePage() {
       if (!selected && data.length > 0) setSelected(data[0]);
     }
     setLoading(false);
-  };
+  }, [selected]);
+
+  useEffect(() => {
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 30000);
+    return () => clearInterval(interval);
+  }, [fetchPrices]);
+
+  useEffect(() => {
+    if (selected) fetchHistory(selected.symbol);
+  }, [selected]);
 
   const fetchHistory = async (symbol: string) => {
     setChartLoading(true);

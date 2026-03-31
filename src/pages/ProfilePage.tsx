@@ -59,6 +59,7 @@ export default function ProfilePage() {
       fetchReferrals();
     }
   }, [user, fetchReferrals]);
+
   const handleSave = async () => {
     setSaving(true);
     try {

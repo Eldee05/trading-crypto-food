@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Link, useNavigate } from "react-router-dom";
@@ -34,12 +34,7 @@ export default function WalletPage() {
   const [amount, setAmount] = useState("");
   const [processing, setProcessing] = useState(false);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    fetchTransactions();
-  }, [isAuthenticated]);
-
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("wallet_transactions")
@@ -49,7 +44,12 @@ export default function WalletPage() {
       .limit(50);
     if (data) setTransactions(data);
     setLoading(false);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetchTransactions();
+  }, [isAuthenticated, fetchTransactions]);
 
   const handleDeposit = async () => {
     if (!user || !amount) return;

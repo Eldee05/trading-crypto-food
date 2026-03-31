@@ -1,18 +1,19 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from "react";
+import { TooltipProps } from "recharts";
+// Chart.tsx
+import { aggregateCandles } from "../lib/utils";
+import { CandleData } from "../lib/utils";
 import {
-  ComposedChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, Cell, ReferenceLine
-} from 'recharts';
-
-export interface CandleData {
-  time: string;
-  timestamp: number;
-  open: number;
-  close: number;
-  high: number;
-  low: number;
-  volume: number;
-}
+  ComposedChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Cell,
+  ReferenceLine,
+} from "recharts";
 
 interface CandlestickChartProps {
   data: CandleData[];
@@ -21,14 +22,20 @@ interface CandlestickChartProps {
 }
 
 // Custom candlestick shape for the Bar component
-const CandlestickShape = (props: any) => {
+const CandlestickShape = (props: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  payload: CandleData;
+}) => {
   const { x, y, width, height, payload } = props;
   if (!payload) return null;
 
   const { open, close, high, low } = payload;
   const isGreen = close >= open;
-  const fill = isGreen ? '#10b981' : '#ef4444';
-  const bodyColor = isGreen ? '#10b981' : '#ef4444';
+  const fill = isGreen ? "#10b981" : "#ef4444";
+  const bodyColor = isGreen ? "#10b981" : "#ef4444";
 
   // Calculate positions relative to the chart's Y axis
   // The bar's y and height represent the range from low to high
@@ -37,8 +44,10 @@ const CandlestickShape = (props: any) => {
   const priceRange = high - low || 0.0001;
 
   // Body position within the bar
-  const bodyTop = barTop + ((high - Math.max(open, close)) / priceRange) * barHeight;
-  const bodyBottom = barTop + ((high - Math.min(open, close)) / priceRange) * barHeight;
+  const bodyTop =
+    barTop + ((high - Math.max(open, close)) / priceRange) * barHeight;
+  const bodyBottom =
+    barTop + ((high - Math.min(open, close)) / priceRange) * barHeight;
   const bodyH = Math.max(1, bodyBottom - bodyTop);
 
   // Wick (center line from high to low)
@@ -68,8 +77,24 @@ const CandlestickShape = (props: any) => {
   );
 };
 
+type ChartData = {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+};
+
+type ChartTooltipProps = {
+  active?: boolean;
+  payload?: {
+    payload: ChartData;
+  }[];
+  label?: string;
+};
 // Custom tooltip
-const ChartTooltip = ({ active, payload, label }: any) => {
+const ChartTooltip = ({ active, payload, label }: ChartTooltipProps) => {
   if (!active || !payload || !payload.length) return null;
   const data = payload[0]?.payload;
   if (!data) return null;
@@ -81,27 +106,47 @@ const ChartTooltip = ({ active, payload, label }: any) => {
       <p className="text-gray-400 mb-1.5 font-mono">{data.time}</p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         <span className="text-gray-500">Open:</span>
-        <span className="text-white font-mono text-right">${data.open.toFixed(4)}</span>
+        <span className="text-white font-mono text-right">
+          ${data.open.toFixed(4)}
+        </span>
         <span className="text-gray-500">High:</span>
-        <span className="text-emerald-400 font-mono text-right">${data.high.toFixed(4)}</span>
+        <span className="text-emerald-400 font-mono text-right">
+          ${data.high.toFixed(4)}
+        </span>
         <span className="text-gray-500">Low:</span>
-        <span className="text-red-400 font-mono text-right">${data.low.toFixed(4)}</span>
+        <span className="text-red-400 font-mono text-right">
+          ${data.low.toFixed(4)}
+        </span>
         <span className="text-gray-500">Close:</span>
-        <span className={`font-mono text-right ${isGreen ? 'text-emerald-400' : 'text-red-400'}`}>
+        <span
+          className={`font-mono text-right ${isGreen ? "text-emerald-400" : "text-red-400"}`}
+        >
           ${data.close.toFixed(4)}
         </span>
         <span className="text-gray-500">Volume:</span>
-        <span className="text-white font-mono text-right">{(data.volume / 1000).toFixed(1)}K</span>
+        <span className="text-white font-mono text-right">
+          {(data.volume / 1000).toFixed(1)}K
+        </span>
       </div>
-      <div className={`mt-1.5 pt-1.5 border-t border-gray-700 text-center font-medium ${isGreen ? 'text-emerald-400' : 'text-red-400'}`}>
-        {isGreen ? '+' : ''}{((data.close - data.open) / data.open * 100).toFixed(2)}%
+      <div
+        className={`mt-1.5 pt-1.5 border-t border-gray-700 text-center font-medium ${isGreen ? "text-emerald-400" : "text-red-400"}`}
+      >
+        {isGreen ? "+" : ""}
+        {(((data.close - data.open) / data.open) * 100).toFixed(2)}%
       </div>
     </div>
   );
 };
 
-export default function CandlestickChart({ data, currentPrice, symbol }: CandlestickChartProps) {
-  const [zoomDomain, setZoomDomain] = useState<{ start: number; end: number } | null>(null);
+export default function CandlestickChart({
+  data,
+  currentPrice,
+  symbol,
+}: CandlestickChartProps) {
+  const [zoomDomain, setZoomDomain] = useState<{
+    start: number;
+    end: number;
+  } | null>(null);
 
   // Compute the visible data based on zoom
   const visibleData = useMemo(() => {
@@ -117,8 +162,8 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
   // Calculate price domain with padding
   const priceDomain = useMemo(() => {
     if (visibleData.length === 0) return [0, 1];
-    const highs = visibleData.map(d => d.high);
-    const lows = visibleData.map(d => d.low);
+    const highs = visibleData.map((d) => d.high);
+    const lows = visibleData.map((d) => d.low);
     const max = Math.max(...highs);
     const min = Math.min(...lows);
     const padding = (max - min) * 0.1 || 0.01;
@@ -128,7 +173,7 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
   // Volume domain
   const maxVolume = useMemo(() => {
     if (visibleData.length === 0) return 1;
-    return Math.max(...visibleData.map(d => d.volume)) * 1.2;
+    return Math.max(...visibleData.map((d) => d.volume)) * 1.2;
   }, [visibleData]);
 
   // Zoom handlers
@@ -141,7 +186,7 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
     const newRange = Math.floor(range * 0.7);
     setZoomDomain({
       start: Math.max(0, mid - Math.floor(newRange / 2)),
-      end: Math.min(data.length, mid + Math.ceil(newRange / 2))
+      end: Math.min(data.length, mid + Math.ceil(newRange / 2)),
     });
   }, [data.length, zoomDomain]);
 
@@ -173,7 +218,7 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
 
   // We use the "high" field for the bar height (high-low range) and a custom shape
   // to draw the actual candlestick
-  const chartData = visibleData.map(d => ({
+  const chartData = visibleData.map((d) => ({
     ...d,
     // The bar needs a value representing the range for positioning
     range: d.high - d.low || 0.0001,
@@ -185,16 +230,22 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
     <div className="relative">
       {/* Zoom controls */}
       <div className="absolute top-2 right-2 z-10 flex gap-1">
-        <button onClick={handleZoomIn}
-          className="px-2 py-1 bg-white/5 border border-gray-700 rounded text-gray-400 hover:text-white hover:bg-white/10 text-xs font-mono transition-colors">
+        <button
+          onClick={handleZoomIn}
+          className="px-2 py-1 bg-white/5 border border-gray-700 rounded text-gray-400 hover:text-white hover:bg-white/10 text-xs font-mono transition-colors"
+        >
           +
         </button>
-        <button onClick={handleZoomOut}
-          className="px-2 py-1 bg-white/5 border border-gray-700 rounded text-gray-400 hover:text-white hover:bg-white/10 text-xs font-mono transition-colors">
+        <button
+          onClick={handleZoomOut}
+          className="px-2 py-1 bg-white/5 border border-gray-700 rounded text-gray-400 hover:text-white hover:bg-white/10 text-xs font-mono transition-colors"
+        >
           -
         </button>
-        <button onClick={handleReset}
-          className="px-2 py-1 bg-white/5 border border-gray-700 rounded text-gray-400 hover:text-white hover:bg-white/10 text-xs transition-colors">
+        <button
+          onClick={handleReset}
+          className="px-2 py-1 bg-white/5 border border-gray-700 rounded text-gray-400 hover:text-white hover:bg-white/10 text-xs transition-colors"
+        >
           Reset
         </button>
       </div>
@@ -202,7 +253,10 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
       {/* Candlestick Chart */}
       <div className="bg-[#0f1219] rounded-t-lg pt-2">
         <ResponsiveContainer width="100%" height={280}>
-          <ComposedChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: 10 }}>
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 10, right: 10, bottom: 0, left: 10 }}
+          >
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="#1e293b"
@@ -210,15 +264,15 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
             />
             <XAxis
               dataKey="time"
-              tick={{ fill: '#64748b', fontSize: 10 }}
+              tick={{ fill: "#64748b", fontSize: 10 }}
               tickLine={false}
-              axisLine={{ stroke: '#1e293b' }}
+              axisLine={{ stroke: "#1e293b" }}
               interval={Math.max(0, Math.floor(chartData.length / 6) - 1)}
               minTickGap={40}
             />
             <YAxis
               domain={priceDomain}
-              tick={{ fill: '#64748b', fontSize: 10 }}
+              tick={{ fill: "#64748b", fontSize: 10 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v: number) => `$${v.toFixed(2)}`}
@@ -227,7 +281,7 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
             />
             <Tooltip
               content={<ChartTooltip />}
-              cursor={{ stroke: '#475569', strokeDasharray: '3 3' }}
+              cursor={{ stroke: "#475569", strokeDasharray: "3 3" }}
             />
             {/* Current price reference line */}
             {currentPrice && (
@@ -242,7 +296,7 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
             <Bar
               dataKey="range"
               stackId="candle"
-              shape={<CandlestickShape />}
+              shape={CandlestickShape}
               isAnimationActive={false}
             >
               {chartData.map((entry, index) => (
@@ -256,16 +310,19 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
       {/* Volume Chart */}
       <div className="bg-[#0f1219] rounded-b-lg pb-2 -mt-1">
         <ResponsiveContainer width="100%" height={80}>
-          <ComposedChart data={chartData} margin={{ top: 0, right: 10, bottom: 5, left: 10 }}>
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 0, right: 10, bottom: 5, left: 10 }}
+          >
             <XAxis
               dataKey="time"
               tick={false}
               tickLine={false}
-              axisLine={{ stroke: '#1e293b' }}
+              axisLine={{ stroke: "#1e293b" }}
             />
             <YAxis
               domain={[0, maxVolume]}
-              tick={{ fill: '#64748b', fontSize: 9 }}
+              tick={{ fill: "#64748b", fontSize: 9 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}K`}
@@ -273,7 +330,7 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
               orientation="right"
             />
             <Tooltip
-              content={({ active, payload }: any) => {
+              content={({ active, payload }: TooltipProps<number, string>) => {
                 if (!active || !payload?.[0]) return null;
                 return (
                   <div className="bg-[#1e2538] border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-300">
@@ -283,11 +340,19 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
               }}
               cursor={false}
             />
-            <Bar dataKey="volume" isAnimationActive={false} radius={[1, 1, 0, 0]}>
+            <Bar
+              dataKey="volume"
+              isAnimationActive={false}
+              radius={[1, 1, 0, 0]}
+            >
               {chartData.map((entry, index) => (
                 <Cell
                   key={index}
-                  fill={entry.close >= entry.open ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}
+                  fill={
+                    entry.close >= entry.open
+                      ? "rgba(16,185,129,0.4)"
+                      : "rgba(239,68,68,0.4)"
+                  }
                 />
               ))}
             </Bar>
@@ -296,26 +361,4 @@ export default function CandlestickChart({ data, currentPrice, symbol }: Candles
       </div>
     </div>
   );
-}
-
-// Timeframe aggregation utility
-export function aggregateCandles(rawData: CandleData[], factor: number): CandleData[] {
-  if (factor <= 1 || rawData.length === 0) return rawData;
-
-  const aggregated: CandleData[] = [];
-  for (let i = 0; i < rawData.length; i += factor) {
-    const chunk = rawData.slice(i, i + factor);
-    if (chunk.length === 0) continue;
-
-    aggregated.push({
-      time: chunk[0].time,
-      timestamp: chunk[0].timestamp,
-      open: chunk[0].open,
-      close: chunk[chunk.length - 1].close,
-      high: Math.max(...chunk.map(c => c.high)),
-      low: Math.min(...chunk.map(c => c.low)),
-      volume: chunk.reduce((sum, c) => sum + c.volume, 0),
-    });
-  }
-  return aggregated;
 }

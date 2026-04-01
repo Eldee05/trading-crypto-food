@@ -1,7 +1,9 @@
+import React from "react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Toaster as Sonner, toast } from "sonner";
+import { useFormContext } from "react-hook-form";
 
 export { toast };
 
@@ -66,3 +68,47 @@ export const toggleVariants = cva(
     },
   },
 );
+
+export const navigationMenuTriggerStyle = cva(
+  "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background/50 px-4 py-2 text-sm font-medium transition-all hover:bg-accent/50 hover:text-accent-foreground focus:bg-accent/50 focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/60 data-[state=open]:bg-accent/60",
+);
+
+type FormFieldContextValue = {
+  name: string;
+};
+
+type FormItemContextValue = {
+  id: string;
+};
+
+export const FormFieldContext =
+  React.createContext<FormFieldContextValue | null>(null);
+
+export const FormItemContext = React.createContext<FormItemContextValue | null>(
+  null,
+);
+
+export const useFormField = () => {
+  const fieldContext = React.useContext(FormFieldContext);
+  const itemContext = React.useContext(FormItemContext);
+  const { getFieldState, formState } = useFormContext();
+
+  if (!fieldContext) {
+    throw new Error("useFormField should be used within <FormField>");
+  }
+  if (!itemContext) {
+    throw new Error("useFormField should be used within <FormItem>");
+  }
+
+  const fieldState = getFieldState(fieldContext.name, formState);
+  const { id } = itemContext;
+
+  return {
+    id,
+    name: fieldContext.name,
+    formItemId: `${id}-form-item`,
+    formDescriptionId: `${id}-form-item-description`,
+    formMessageId: `${id}-form-item-message`,
+    ...fieldState,
+  };
+};

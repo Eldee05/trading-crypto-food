@@ -1,25 +1,20 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
-  animated?: boolean
+  animated?: boolean;
 }
 
-function Skeleton({
-  className,
-  animated = true,
-  ...props
-}: SkeletonProps) {
+function Skeleton({ className, animated = true, ...props }: SkeletonProps) {
   return (
     <div
       className={cn(
         "rounded-md bg-muted/70",
         animated && "animate-pulse",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
-export { Skeleton }
+export { Skeleton };
